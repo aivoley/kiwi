@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import jsPDF from "jspdf";
 
 const defaultPlayer = { name: "" };
 const initialPlayers = Array(14).fill(defaultPlayer);
