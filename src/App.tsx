@@ -1,30 +1,47 @@
 import React, { useState, useEffect } from "react";
+import "./index.css"; // Asegurate de tener este archivo o eliminar esta línea si no lo necesitas
 
-const accionesGanadas = ["ACE", "ATAQUE", "BLOQUEO", "TOQUE", "ERROR RIVAL"];
-const accionesPerdidas = [
+const defaultPlayer = { name: "", position: "" };
+const initialPlayers = Array(14).fill(defaultPlayer);
+
+const actionsWin = ["ACE", "ATAQUE", "BLOQUEO", "TOQUE", "ERROR RIVAL"];
+const actionsLose = [
   "ERROR DE SAQUE",
   "ERROR DE ATAQUE",
   "BLOQUEO RIVAL",
   "ERROR NO FORZADO",
   "ERROR DE RECEPCIÓN",
   "ATAQUE RIVAL",
-  "BLOQUEO RIVAL",
-  "SAQUE RIVAL"
+  "SAQUE RIVAL",
 ];
 
 export default function App() {
-  const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem("plantilla")) || Array(14).fill({ name: "", position: "" }));
+  const [players, setPlayers] = useState(initialPlayers);
   const [starters, setStarters] = useState([]);
-  const [rotation, setRotation] = useState([0, 1, 2, 3, 4, 5]);
+  const [rotation, setRotation] = useState([0, 5, 4, 3, 2, 1]); // 1-6-5-4-3-2-1
   const [score, setScore] = useState({ won: 0, lost: 0 });
   const [history, setHistory] = useState([]);
   const [setNumber, setSetNumber] = useState(1);
-  const [selectedAction, setSelectedAction] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState("");
 
   useEffect(() => {
-    localStorage.setItem("plantilla", JSON.stringify(players));
-  }, [players]);
+    const saved = localStorage.getItem("kiwis_players");
+    if (saved) setPlayers(JSON.parse(saved));
+  }, []);
+
+  const saveTemplate = () => localStorage.setItem("kiwis_players", JSON.stringify(players));
+  const loadTemplate = () => {
+    const saved = localStorage.getItem("kiwis_players");
+    if (saved) setPlayers(JSON.parse(saved));
+  };
+
+  const exportJSON = () => {
+    const data = JSON.stringify({ players, starters, history, score });
+    const blob = new Blob([data], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `kiwis_set${setNumber}.json`;
+    link.click();
+  };
 
   const handleSetPlayer = (index, field, value) => {
     const updated = [...players];
@@ -42,135 +59,93 @@ export default function App() {
   const rotateBack = () => setRotation((prev) => [...prev.slice(1), prev[0]]);
 
   const handlePoint = (result) => {
-    if (!selectedAction) return alert("Seleccioná una acción");
-
-    const newEvent = {
-      rotation: [...rotation],
-      result,
-      action: selectedAction,
-      player: selectedPlayer || null,
-    };
-
-    setHistory((prev) => [...prev, newEvent]);
+    const actionList = result === "win" ? actionsWin : actionsLose;
+    const action = prompt(`Seleccioná acción (${actionList.join(", ")})`);
+    const player = prompt("Nombre de la jugadora (o dejar vacío si no aplica)");
+    setHistory([...history, { rotation: [...rotation], result, action, player }]);
     setScore((prev) => ({
       won: prev.won + (result === "win" ? 1 : 0),
       lost: prev.lost + (result === "lose" ? 1 : 0),
     }));
-
-    setSelectedAction("");
-    setSelectedPlayer("");
-  };
-
-  const saveSet = () => {
-    const data = {
-      set: setNumber,
-      starters,
-      rotation,
-      score,
-      history,
-    };
-    localStorage.setItem(`set_${setNumber}`, JSON.stringify(data));
-    alert("Set guardado en localStorage");
-  };
-
-  const exportJSON = () => {
-    const partido = {
-      plantilla: players,
-      sets: [...Array(setNumber)].map((_, i) => JSON.parse(localStorage.getItem(`set_${i + 1}`) || "{}")),
-    };
-    const blob = new Blob([JSON.stringify(partido, null, 2)], { type: "application/json" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "partido_kiwis.json";
-    link.click();
   };
 
   return (
-    <div className="p-4 max-w-screen-lg mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-4">KIWIS APP</h1>
-      <div className="flex justify-between items-center">
-        <span className="text-xl">Set actual: {setNumber}</span>
-        <button onClick={() => setSetNumber(setNumber + 1)} className="bg-blue-500 text-white px-3 py-1 rounded">+ Set</button>
-        <button onClick={saveSet} className="bg-green-600 text-white px-3 py-1 rounded">Guardar Set</button>
-        <button onClick={exportJSON} className="bg-purple-600 text-white px-3 py-1 rounded">Exportar JSON</button>
+    <div className="app-container" style={{ backgroundColor: '#e6f5e6', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
+      <h1 className="app-title" style={{ color: '#2d862d' }}>KIWIS APP</h1>
+
+      <div className="controls" style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <button onClick={saveTemplate}>Guardar plantilla</button>
+          <button onClick={loadTemplate}>Cargar plantilla</button>
+          <button onClick={exportJSON}>Exportar JSON</button>
+        </div>
+        <div>
+          <span>Set actual: </span>
+          <input
+            type="number"
+            value={setNumber}
+            onChange={(e) => setSetNumber(Number(e.target.value))}
+          />
+        </div>
       </div>
 
-      <hr className="my-4" />
-
-      <h2 className="text-xl font-semibold">Plantilla (14 jugadoras)</h2>
-      {players.map((p, i) => (
-        <div key={i} className="flex gap-2 mb-1">
-          <input type="text" value={p.name} onChange={(e) => handleSetPlayer(i, "name", e.target.value)} placeholder="Nombre" className="border p-1 w-1/3" />
-          <input type="text" value={p.position} onChange={(e) => handleSetPlayer(i, "position", e.target.value)} placeholder="Posición" className="border p-1 w-1/3" />
-          <button onClick={() => handleSelectStarter(i)} disabled={starters.includes(i)} className="bg-yellow-500 text-white px-2 rounded">Titular</button>
-        </div>
-      ))}
-
-      <h2 className="text-xl font-semibold mt-4">Formación en cancha</h2>
-      <div className="grid grid-cols-3 gap-2 bg-green-100 p-4 rounded">
-        {rotation.map((rIndex, i) => (
-          <div key={i} className="bg-white p-2 rounded shadow text-center">
-            <div className="font-bold">Zona {i + 1}</div>
-            <div>
-              {players[starters[rIndex]]?.name || "-"}
-              <div className="text-xs">{players[starters[rIndex]]?.position}</div>
-            </div>
+      <div className="team-section" style={{ marginBottom: '20px' }}>
+        <h2>Equipo (14 jugadoras)</h2>
+        {players.map((p, i) => (
+          <div key={i} className="player-input" style={{ marginBottom: '10px' }}>
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={p.name}
+              onChange={(e) => handleSetPlayer(i, "name", e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            <input
+              type="text"
+              placeholder="Posición"
+              value={p.position}
+              onChange={(e) => handleSetPlayer(i, "position", e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            <button onClick={() => handleSelectStarter(i)} disabled={starters.includes(i)}>
+              Titular
+            </button>
           </div>
         ))}
       </div>
 
-      <h2 className="text-xl font-semibold mt-4">Suplentes</h2>
-      <ul>
-        {players.map((p, i) => !starters.includes(i) && <li key={i}>{p.name}</li>)}
-      </ul>
-
-      <h2 className="text-xl font-semibold mt-6">Simulación</h2>
-      <div className="flex gap-4 my-2">
-        <button onClick={rotate} className="bg-blue-500 text-white px-3 py-1 rounded">➡ Siguiente rotación</button>
-        <button onClick={rotateBack} className="bg-blue-500 text-white px-3 py-1 rounded">⬅ Rotación anterior</button>
-      </div>
-
-      <div className="my-2">
-        <label className="block">Acción:</label>
-        <select value={selectedAction} onChange={(e) => setSelectedAction(e.target.value)} className="border p-1 w-full">
-          <option value="">-- Elegí una acción --</option>
-          <optgroup label="Ganados">
-            {accionesGanadas.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Perdidos">
-            {accionesPerdidas.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </optgroup>
-        </select>
-      </div>
-      <div className="my-2">
-        <label className="block">Jugadora (opcional):</label>
-        <select value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)} className="border p-1 w-full">
-          <option value="">-- Sin jugadora asociada --</option>
-          {players.map((p, i) => (
-            <option key={i} value={p.name}>{p.name}</option>
+      <div className="court-section" style={{ marginBottom: '20px' }}>
+        <h2>Formación en cancha</h2>
+        <div className="court-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
+          {rotation.map((rIndex, i) => (
+            <div key={i} className="court-box" style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '8px', backgroundColor: '#f2f2f2' }}>
+              <div className="zone-label" style={{ fontWeight: 'bold' }}>Zona {i + 1}</div>
+              <div>{players[starters[rIndex]]?.name || "-"}</div>
+              <div>{players[starters[rIndex]]?.position || ""}</div>
+            </div>
           ))}
-        </select>
+        </div>
+        <h3>Suplentes</h3>
+        <ul>
+          {players.map((p, i) => !starters.includes(i) && <li key={i}>{p.name}</li>)}
+        </ul>
       </div>
 
-      <div className="flex gap-4 my-2">
-        <button onClick={() => handlePoint("win")} className="bg-green-600 text-white px-3 py-1 rounded">✔ Punto ganado</button>
-        <button onClick={() => handlePoint("lose")} className="bg-red-600 text-white px-3 py-1 rounded">❌ Punto perdido</button>
+      <div className="rotation-section" style={{ marginBottom: '20px' }}>
+        <h2>Simulación de Rotaciones</h2>
+        <button onClick={rotate}>➡ Siguiente rotación</button>
+        <button onClick={rotateBack}>⬅ Rotación anterior</button>
+        <button onClick={() => handlePoint("win")}>✔ Punto ganado</button>
+        <button onClick={() => handlePoint("lose")}>❌ Punto perdido</button>
+        <div style={{ marginTop: '10px' }}>Marcador: Ganados: {score.won} / Perdidos: {score.lost}</div>
       </div>
 
-      <div className="my-4">
-        <strong>Marcador:</strong> Ganados: {score.won} / Perdidos: {score.lost}
-      </div>
-
-      <div className="mt-4">
-        <h2 className="text-xl font-semibold">Historial</h2>
-        <ul className="list-disc list-inside">
+      <div className="history-section">
+        <h2>Historial de puntos</h2>
+        <ul>
           {history.map((h, i) => (
             <li key={i}>
-              Rotación: {h.rotation.join("-")} | Resultado: {h.result === "win" ? "✔" : "❌"} | Acción: {h.action} {h.player ? `| Jugadora: ${h.player}` : ""}
+              Rotación: {h.rotation.join("-")} | {h.result === "win" ? "✔" : "❌"} {h.action} {h.player && `| Jugadora: ${h.player}`}
             </li>
           ))}
         </ul>
@@ -178,4 +153,5 @@ export default function App() {
     </div>
   );
 }
+
 
