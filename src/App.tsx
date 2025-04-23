@@ -68,20 +68,6 @@ export default function App() {
     link.click();
   };
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Informe del Partido - KIWIS", 10, 10);
-    doc.text(`Set: ${setNumber}`, 10, 20);
-    doc.text(`Resultado: ${score.won} - ${score.lost}`, 10, 30);
-    doc.text("Estadísticas individuales:", 10, 40);
-    let y = 50;
-    Object.entries(stats).forEach(([name, s]) => {
-      doc.text(`${name}: +${s.win} / -${s.lose}`, 10, y);
-      y += 10;
-    });
-    doc.save(`informe_kiwis_set${setNumber}.pdf`);
-  };
-
   const saveMatch = () => {
     const data = { players, starters, rotation, score, history, setNumber };
     localStorage.setItem("kiwis_match", JSON.stringify(data));
@@ -135,22 +121,6 @@ export default function App() {
   const courtOrder = [1, 2, 3, 0, 5, 4];
   const allSelectable = [...starters, ...players.map((_, i) => i).filter(i => !starters.includes(i))];
 
-  // Nueva función para cargar archivo JSON
-  const importJSON = (event) => {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const data = JSON.parse(e.target.result);
-      setPlayers(data.players);
-      setStarters(data.starters);
-      setHistory(data.history);
-      setScore(data.score);
-      setSetNumber(data.setNumber);
-      setRotation(data.rotation);
-    };
-    reader.readAsText(file);
-  };
-
   return (
     <div style={{ backgroundColor: '#e6f5e6', fontFamily: 'Arial', padding: '20px' }}>
       <h1 style={{ color: '#2d862d' }}>🥝 KIWIS APP</h1>
@@ -159,17 +129,60 @@ export default function App() {
         <button onClick={saveTemplate}>Guardar plantilla</button>
         <button onClick={loadTemplate}>Cargar plantilla</button>
         <button onClick={exportJSON}>Exportar JSON</button>
-        <button onClick={exportPDF}>Exportar PDF</button>
         <button onClick={saveMatch}>Guardar partido</button>
         <button onClick={resetMatch}>Resetear partido</button>
         <span style={{ marginLeft: '10px' }}>Set: </span>
         <input type="number" value={setNumber} onChange={(e) => setSetNumber(Number(e.target.value))} />
-
-        {/* Botón de Importar archivo JSON */}
-        <input type="file" onChange={importJSON} style={{ marginLeft: '10px' }} />
       </div>
 
-      {/* Aquí iría el resto del código de la interfaz para manejar jugadores, puntos, estadísticas, etc. */}
+      <div style={{ marginBottom: '20px' }}>
+        <h3>Jugadores</h3>
+        <div>
+          {players.map((player, index) => (
+            <div key={index}>
+              <input 
+                type="text" 
+                value={player.name} 
+                onChange={(e) => handleSetPlayer(index, e.target.value)} 
+                placeholder={`Jugador ${index + 1}`} 
+              />
+              <button onClick={() => handleToggleStarter(index)}>
+                {starters.includes(index) ? "Quitar titular" : "Asignar titular"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3>Acciones</h3>
+        <div>
+          {actionsWin.map((action, index) => (
+            <button key={index} onClick={() => handlePoint("win", action)}>
+              {action}
+            </button>
+          ))}
+        </div>
+        <div>
+          {actionsLose.map((action, index) => (
+            <button key={index} onClick={() => handlePoint("lose", action)}>
+              {action}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <h3>Estadísticas</h3>
+        <div>
+          {Object.entries(stats).map(([name, { win, lose }]) => (
+            <div key={name}>
+              <p>{name}: +{win} / -{lose}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
+
