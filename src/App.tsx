@@ -1,21 +1,20 @@
 import React, { useState } from "react";
-<button className="px-4 py-2 bg-blue-600 text-white rounded-xl">Click</button>
-import "./index.css";
+import "./index.css"; // Asegúrate de que esta ruta esté correcta.
 
 export default function App() {
   const [players, setPlayers] = useState(Array(14).fill({ name: "", position: "" }));
-  const [starters, setStarters] = useState([]);
+  const [starters, setStarters] = useState<number[]>([]);
   const [rotation, setRotation] = useState([0, 1, 2, 3, 4, 5]);
   const [score, setScore] = useState({ won: 0, lost: 0 });
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<{ rotation: number[]; result: string }[]>([]);
 
-  const handleSetPlayer = (index, field, value) => {
+  const handleSetPlayer = (index: number, field: string, value: string) => {
     const updated = [...players];
     updated[index] = { ...updated[index], [field]: value };
     setPlayers(updated);
   };
 
-  const handleSelectStarter = (index) => {
+  const handleSelectStarter = (index: number) => {
     if (!starters.includes(index) && starters.length < 6) {
       setStarters([...starters, index]);
     }
@@ -29,7 +28,7 @@ export default function App() {
     setRotation((prev) => [...prev.slice(1), prev[0]]);
   };
 
-  const handlePoint = (result) => {
+  const handlePoint = (result: string) => {
     const newHistory = [...history, { rotation: [...rotation], result }];
     setHistory(newHistory);
     setScore((prev) => ({
@@ -61,9 +60,13 @@ export default function App() {
                 onChange={(e) => handleSetPlayer(i, "position", e.target.value)}
                 className="border p-1 w-1/3"
               />
-              <Button onClick={() => handleSelectStarter(i)} disabled={starters.includes(i)}>
+              <button
+                onClick={() => handleSelectStarter(i)}
+                disabled={starters.includes(i)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl"
+              >
                 Titular
-              </Button>
+              </button>
             </div>
           ))}
         </div>
@@ -95,13 +98,21 @@ export default function App() {
       <div className="mt-6">
         <h2 className="text-xl font-semibold">Simulación de Rotaciones</h2>
         <div className="flex gap-4 my-2">
-          <Button onClick={rotate}>➡ Siguiente rotación</Button>
-          <Button onClick={rotateBack}>⬅ Rotación anterior</Button>
+          <button onClick={rotate} className="px-4 py-2 bg-blue-600 text-white rounded-xl">
+            ➡ Siguiente rotación
+          </button>
+          <button onClick={rotateBack} className="px-4 py-2 bg-blue-600 text-white rounded-xl">
+            ⬅ Rotación anterior
+          </button>
         </div>
         <h3 className="text-lg">Marcador</h3>
         <div className="flex gap-4 my-2">
-          <Button onClick={() => handlePoint("win")}>✔ Punto ganado</Button>
-          <Button onClick={() => handlePoint("lose")}>❌ Punto perdido</Button>
+          <button onClick={() => handlePoint("win")} className="px-4 py-2 bg-green-600 text-white rounded-xl">
+            ✔ Punto ganado
+          </button>
+          <button onClick={() => handlePoint("lose")} className="px-4 py-2 bg-red-600 text-white rounded-xl">
+            ❌ Punto perdido
+          </button>
         </div>
         <div>
           <strong>Total:</strong> Ganados: {score.won} / Perdidos: {score.lost}
@@ -122,3 +133,4 @@ export default function App() {
     </div>
   );
 }
+
