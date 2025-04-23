@@ -7,9 +7,9 @@ const actionsWin = ["ACE", "ATAQUE", "BLOQUEO", "TOQUE", "ERROR RIVAL"];
 const actionsLose = [
   "ERROR DE SAQUE",
   "ERROR DE ATAQUE",
+  "BLOQUEO RIVAL",
   "ERROR NO FORZADO",
   "ERROR DE RECEPCIÓN",
-  "BLOQUEO RIVAL",
   "ATAQUE RIVAL",
   "SAQUE RIVAL"
 ];
@@ -150,60 +150,53 @@ export default function App() {
       <button onClick={rotate}>➡ Siguiente</button>
       <button onClick={rotateBack}>⬅ Anterior</button>
 
-      <h2>Cambio de Jugadoras</h2>
-      {starters.map((starter, i) => (
-        <div key={i} style={{ marginBottom: '10px' }}>
-          <span>{players[starter].name} (Titular) </span>
-          <select
-            onChange={(e) => handleSubstitution(parseInt(e.target.value), starter)}
-            value=""
-          >
-            <option value="">Seleccionar suplente</option>
-            {players
-              .map((_, idx) => !starters.includes(idx) && <option key={idx} value={idx}>{players[idx].name}</option>)}
-          </select>
+      <h2>Punto Ganado</h2>
+      {actionsWin.map((action) => (
+        <div key={action} style={{ margin: '5px', display: 'inline-block' }}>
+          {action === "ERROR RIVAL" ? (
+            <button onClick={() => handlePoint("win", action)} style={{ backgroundColor: '#c6f6d5' }}>{action}</button>
+          ) : (
+            <select
+              onChange={(e) => handlePoint("win", action, players[e.target.value]?.name)}
+              style={{ backgroundColor: '#c6f6d5' }}
+            >
+              <option value="">--{action}--</option>
+              {allSelectable.map(i => (
+                <option key={i} value={i}>{players[i].name} ({i + 1})</option>
+              ))}
+            </select>
+          )}
         </div>
       ))}
 
-      <h2>Punto Ganado</h2>
-      {actionsWin.map((action) => (
-        <button
-          key={action}
-          onClick={() => {
-            if (action === "ERROR RIVAL") handlePoint("win", action);
-          }}
-          style={{ margin: '5px', backgroundColor: '#c6f6d5' }}
-        >
-          {action !== "ERROR RIVAL" ? (
-            <select onChange={(e) => handlePoint("win", action, players[e.target.value]?.name)}>
-              <option value="">--{action}--</option>
-              {allSelectable.map(i => (
-                <option key={i} value={i}>{players[i].name} ({i + 1})</option>
-              ))}
-            </select>
-          ) : action}
-        </button>
-      ))}
-
       <h2>Punto Perdido</h2>
-      {actionsLose.map((action) => (
-        <button
-          key={action}
-          onClick={() => {
-            if (action.includes("RIVAL") || action.includes("ERROR")) handlePoint("lose", action);
-          }}
-          style={{ margin: '5px', backgroundColor: '#fed7d7' }}
-        >
-          {!(action.includes("RIVAL") || action.includes("ERROR")) ? (
-            <select onChange={(e) => handlePoint("lose", action, players[e.target.value]?.name)}>
-              <option value="">--{action}--</option>
-              {allSelectable.map(i => (
-                <option key={i} value={i}>{players[i].name} ({i + 1})</option>
-              ))}
-            </select>
-          ) : action}
-        </button>
-      ))}
+      {actionsLose.map((action) => {
+        const necesitaJugador = ["ERROR DE SAQUE", "ERROR DE ATAQUE", "ERROR NO FORZADO", "ERROR DE RECEPCIÓN"];
+        return (
+          <div key={action} style={{ margin: '5px', display: 'inline-block' }}>
+            {necesitaJugador.includes(action) ? (
+              <select
+                onChange={(e) => {
+                  if (e.target.value) handlePoint("lose", action, players[e.target.value]?.name);
+                }}
+                style={{ backgroundColor: '#fed7d7' }}
+              >
+                <option value="">--{action}--</option>
+                {allSelectable.map(i => (
+                  <option key={i} value={i}>{players[i].name} ({i + 1})</option>
+                ))}
+              </select>
+            ) : (
+              <button
+                onClick={() => handlePoint("lose", action)}
+                style={{ backgroundColor: '#fed7d7' }}
+              >
+                {action}
+              </button>
+            )}
+          </div>
+        );
+      })}
 
       <h2>Historial</h2>
       <ul>
