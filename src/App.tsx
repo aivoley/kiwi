@@ -7,9 +7,9 @@ const actionsWin = ["ACE", "ATAQUE", "BLOQUEO", "TOQUE", "ERROR RIVAL"];
 const actionsLose = [
   "ERROR DE SAQUE",
   "ERROR DE ATAQUE",
-  "BLOQUEO RIVAL",
   "ERROR NO FORZADO",
   "ERROR DE RECEPCIÓN",
+  "BLOQUEO RIVAL",
   "ATAQUE RIVAL",
   "SAQUE RIVAL"
 ];
@@ -218,5 +218,3 @@ export default function App() {
     </div>
   );
 }
-
-
