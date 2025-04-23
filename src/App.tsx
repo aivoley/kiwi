@@ -101,7 +101,7 @@ export default function App() {
     setHistory([...history, { result: "cambio", action: `CAMBIO ${inName} x ${outName}`, player: "" }]);
   };
 
-  const courtOrder = [1, 2, 3, 0, 5, 4];
+  const courtOrder = [3, 2, 1, 4, 5, 0];
   const allSelectable = [...starters, ...players.map((_, i) => i).filter(i => !starters.includes(i))];
 
   return (
@@ -136,6 +136,26 @@ export default function App() {
         ))}
       </div>
 
+      <h2>Suplentes</h2>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+        {players.map((p, i) => (
+          !starters.includes(i) && (
+            <div key={i} style={{ border: '1px solid #999', padding: '10px', borderRadius: '8px', background: '#fff' }}>
+              <strong>{i + 1}. {p.name || "Suplente"}</strong><br />
+              <button onClick={() => {
+                const outIndex = prompt("¿Qué número de titular sale?");
+                const out = parseInt(outIndex) - 1;
+                if (!isNaN(out) && starters.includes(out)) {
+                  handleSubstitution(i, out);
+                } else {
+                  alert("Número inválido o no es titular");
+                }
+              }}>Ingresar</button>
+            </div>
+          )
+        ))}
+      </div>
+
       <h2>Cancha</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', width: '300px', margin: '20px auto' }}>
         {["IV", "III", "II", "V", "VI", "I"].map((zone, i) => (
@@ -147,47 +167,55 @@ export default function App() {
       </div>
 
       <h2>Rotación</h2>
-      <button onClick={rotate}>➡ Siguiente</button>
       <button onClick={rotateBack}>⬅ Anterior</button>
+      <button onClick={rotate}>➡ Siguiente</button>
 
       <h2>Punto Ganado</h2>
       {actionsWin.map((action) => (
-        <button
-          key={action}
-          onClick={() => {
-            if (action === "ERROR RIVAL") handlePoint("win", action);
-          }}
-          style={{ margin: '5px', backgroundColor: '#c6f6d5' }}
-        >
+        <span key={action} style={{ margin: '5px' }}>
           {action !== "ERROR RIVAL" ? (
-            <select onChange={(e) => handlePoint("win", action, players[e.target.value]?.name)}>
+            <select
+              onChange={(e) => handlePoint("win", action, players[e.target.value]?.name)}
+              style={{ backgroundColor: '#c6f6d5' }}
+            >
               <option value="">--{action}--</option>
               {allSelectable.map(i => (
                 <option key={i} value={i}>{players[i].name} ({i + 1})</option>
               ))}
             </select>
-          ) : action}
-        </button>
+          ) : (
+            <button
+              onClick={() => handlePoint("win", action)}
+              style={{ backgroundColor: '#c6f6d5' }}
+            >
+              {action}
+            </button>
+          )}
+        </span>
       ))}
 
       <h2>Punto Perdido</h2>
       {actionsLose.map((action) => (
-        <button
-          key={action}
-          onClick={() => {
-            if (action.includes("RIVAL") || action.includes("ERROR")) handlePoint("lose", action);
-          }}
-          style={{ margin: '5px', backgroundColor: '#fed7d7' }}
-        >
-          {!(action.includes("RIVAL") || action.includes("ERROR")) ? (
-            <select onChange={(e) => handlePoint("lose", action, players[e.target.value]?.name)}>
+        <span key={action} style={{ margin: '5px' }}>
+          {action.includes("RIVAL") ? (
+            <button
+              onClick={() => handlePoint("lose", action)}
+              style={{ backgroundColor: '#fed7d7' }}
+            >
+              {action}
+            </button>
+          ) : (
+            <select
+              onChange={(e) => handlePoint("lose", action, players[e.target.value]?.name)}
+              style={{ backgroundColor: '#fed7d7' }}
+            >
               <option value="">--{action}--</option>
               {allSelectable.map(i => (
                 <option key={i} value={i}>{players[i].name} ({i + 1})</option>
               ))}
             </select>
-          ) : action}
-        </button>
+          )}
+        </span>
       ))}
 
       <h2>Historial</h2>
@@ -203,3 +231,4 @@ export default function App() {
     </div>
   );
 }
+
