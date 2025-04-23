@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "./index.css"; // Asegúrate de tener este archivo o eliminar esta línea si no lo necesitas
 
 const defaultPlayer = { name: "" };
 const initialPlayers = Array(14).fill(defaultPlayer);
@@ -12,13 +11,13 @@ const actionsLose = [
   "ERROR NO FORZADO",
   "ERROR DE RECEPCIÓN",
   "ATAQUE RIVAL",
-  "SAQUE RIVAL",
+  "SAQUE RIVAL"
 ];
 
 export default function App() {
   const [players, setPlayers] = useState(initialPlayers);
   const [starters, setStarters] = useState([]);
-  const [rotation, setRotation] = useState([0, 5, 4, 3, 2, 1]); // 1-6-5-4-3-2-1
+  const [rotation, setRotation] = useState([0, 5, 4, 3, 2, 1]);
   const [score, setScore] = useState({ won: 0, lost: 0 });
   const [history, setHistory] = useState([]);
   const [setNumber, setSetNumber] = useState(1);
@@ -26,6 +25,17 @@ export default function App() {
   useEffect(() => {
     const saved = localStorage.getItem("kiwis_players");
     if (saved) setPlayers(JSON.parse(saved));
+
+    const savedMatch = localStorage.getItem("kiwis_match");
+    if (savedMatch) {
+      const { players, starters, history, score, setNumber, rotation } = JSON.parse(savedMatch);
+      setPlayers(players);
+      setStarters(starters);
+      setHistory(history);
+      setScore(score);
+      setSetNumber(setNumber);
+      setRotation(rotation);
+    }
   }, []);
 
   const saveTemplate = () => localStorage.setItem("kiwis_players", JSON.stringify(players));
@@ -35,12 +45,28 @@ export default function App() {
   };
 
   const exportJSON = () => {
-    const data = JSON.stringify({ players, starters, history, score });
+    const data = JSON.stringify({ players, starters, history, score, setNumber });
     const blob = new Blob([data], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `kiwis_set${setNumber}.json`;
     link.click();
+  };
+
+  const saveMatch = () => {
+    const data = { players, starters, rotation, score, history, setNumber };
+    localStorage.setItem("kiwis_match", JSON.stringify(data));
+    alert("Partido guardado");
+  };
+
+  const resetMatch = () => {
+    setPlayers(initialPlayers);
+    setStarters([]);
+    setRotation([0, 5, 4, 3, 2, 1]);
+    setScore({ won: 0, lost: 0 });
+    setHistory([]);
+    setSetNumber(1);
+    localStorage.removeItem("kiwis_match");
   };
 
   const handleSetPlayer = (index, value) => {
@@ -49,77 +75,53 @@ export default function App() {
     setPlayers(updated);
   };
 
-  const handleSelectStarter = (index) => {
-    if (!starters.includes(index) && starters.length < 6) {
-      setStarters([...starters, index]);
-    }
+  const handleToggleStarter = (index) => {
+    setStarters(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index].slice(0, 6));
   };
 
-  const rotate = () => setRotation((prev) => [prev[5], ...prev.slice(0, 5)]);
-  const rotateBack = () => setRotation((prev) => [...prev.slice(1), prev[0]]);
+  const rotate = () => setRotation((prev) => [...prev.slice(1), prev[0]]);
+  const rotateBack = () => setRotation((prev) => [prev[5], ...prev.slice(0, 5)]);
 
-  const handlePoint = (result) => {
-    const actionList = result === "win" ? actionsWin : actionsLose;
-    const action = prompt(`Seleccioná acción (${actionList.join(", ")})`);
-    const player = prompt("Nombre de la jugadora (o dejar vacío si no aplica)");
-    setHistory([...history, { rotation: [...rotation], result, action, player }]);
-    setScore((prev) => ({
-      won: prev.won + (result === "win" ? 1 : 0),
-      lost: prev.lost + (result === "lose" ? 1 : 0),
-    }));
+  const handlePoint = (result, action, player = "") => {
+    const newScore = {
+      won: score.won + (result === "win" ? 1 : 0),
+      lost: score.lost + (result === "lose" ? 1 : 0),
+    };
+    setScore(newScore);
+    setHistory([...history, { result, action, player, score: newScore }]);
   };
 
-  // Función para convertir números a romanos
-  const toRoman = (num) => {
-    const romanNumerals = [
-      { value: 1, symbol: "I" },
-      { value: 4, symbol: "IV" },
-      { value: 5, symbol: "V" },
-      { value: 9, symbol: "IX" },
-      { value: 10, symbol: "X" },
-      { value: 40, symbol: "XL" },
-      { value: 50, symbol: "L" },
-      { value: 90, symbol: "XC" },
-      { value: 100, symbol: "C" },
-      { value: 400, symbol: "CD" },
-      { value: 500, symbol: "D" },
-      { value: 900, symbol: "CM" },
-      { value: 1000, symbol: "M" }
-    ];
-    let result = '';
-    romanNumerals.reverse().forEach(({ value, symbol }) => {
-      while (num >= value) {
-        result += symbol;
-        num -= value;
-      }
-    });
-    return result;
+  const handleSubstitution = (inIndex, outIndex) => {
+    const newStarters = [...starters];
+    const idx = newStarters.indexOf(outIndex);
+    newStarters[idx] = inIndex;
+    setStarters(newStarters);
+    const inName = players[inIndex]?.name || "";
+    const outName = players[outIndex]?.name || "";
+    setHistory([...history, { result: "cambio", action: `CAMBIO ${inName} x ${outName}`, player: "" }]);
   };
+
+  const courtOrder = [1, 2, 3, 0, 5, 4];
+  const allSelectable = [...starters, ...players.map((_, i) => i).filter(i => !starters.includes(i))];
 
   return (
-    <div className="app-container" style={{ backgroundColor: '#e6f5e6', fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-      <h1 className="app-title" style={{ color: '#2d862d' }}>KIWIS APP</h1>
+    <div style={{ backgroundColor: '#e6f5e6', fontFamily: 'Arial', padding: '20px' }}>
+      <h1 style={{ color: '#2d862d' }}>KIWIS APP</h1>
 
-      <div className="controls" style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '10px' }}>
-          <button onClick={saveTemplate}>Guardar plantilla</button>
-          <button onClick={loadTemplate}>Cargar plantilla</button>
-          <button onClick={exportJSON}>Exportar JSON</button>
-        </div>
-        <div>
-          <span>Set actual: </span>
-          <input
-            type="number"
-            value={setNumber}
-            onChange={(e) => setSetNumber(Number(e.target.value))}
-          />
-        </div>
+      <div style={{ marginBottom: '20px' }}>
+        <button onClick={saveTemplate}>Guardar plantilla</button>
+        <button onClick={loadTemplate}>Cargar plantilla</button>
+        <button onClick={exportJSON}>Exportar JSON</button>
+        <button onClick={saveMatch}>Guardar partido</button>
+        <button onClick={resetMatch}>Resetear partido</button>
+        <span style={{ marginLeft: '10px' }}>Set: </span>
+        <input type="number" value={setNumber} onChange={(e) => setSetNumber(Number(e.target.value))} />
       </div>
 
-      <div className="team-section" style={{ marginBottom: '20px' }}>
-        <h2>Equipo (14 jugadoras)</h2>
+      <div>
+        <h2>Jugadoras (14)</h2>
         {players.map((p, i) => (
-          <div key={i} className="player-input" style={{ marginBottom: '10px' }}>
+          <div key={i}>
             <input
               type="text"
               placeholder="Nombre"
@@ -127,49 +129,77 @@ export default function App() {
               onChange={(e) => handleSetPlayer(i, e.target.value)}
               style={{ marginRight: '5px' }}
             />
-            <button onClick={() => handleSelectStarter(i)} disabled={starters.includes(i)}>
-              Titular
+            <button onClick={() => handleToggleStarter(i)}>
+              {starters.includes(i) ? "Quitar Titular" : "Titular"}
             </button>
           </div>
         ))}
       </div>
 
-      <div className="court-section" style={{ marginBottom: '20px' }}>
-        <h2>Formación en cancha</h2>
-        <div className="court-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
-          {rotation.map((rIndex, i) => (
-            <div key={i} className="court-box" style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '8px', backgroundColor: '#f2f2f2' }}>
-              <div className="zone-label" style={{ fontWeight: 'bold' }}>{toRoman(i + 1)}</div>
-              <div>{players[starters[rIndex]]?.name || "-"}</div>
-            </div>
-          ))}
-        </div>
-        <h3>Suplentes</h3>
-        <ul>
-          {players.map((p, i) => !starters.includes(i) && <li key={i}>{p.name}</li>)}
-        </ul>
+      <h2>Cancha</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', width: '300px', margin: '20px auto' }}>
+        {["IV", "III", "II", "V", "VI", "I"].map((zone, i) => (
+          <div key={i} style={{ border: '1px solid #ccc', padding: '10px', textAlign: 'center' }}>
+            <strong>{zone}</strong><br />
+            {players[starters[rotation[courtOrder[i]]]] ? players[starters[rotation[courtOrder[i]]]].name : "-"}
+          </div>
+        ))}
       </div>
 
-      <div className="rotation-section" style={{ marginBottom: '20px' }}>
-        <h2>Simulación de Rotaciones</h2>
-        <button onClick={rotate}>➡ Siguiente rotación</button>
-        <button onClick={rotateBack}>⬅ Rotación anterior</button>
-        <button onClick={() => handlePoint("win")}>✔ Punto ganado</button>
-        <button onClick={() => handlePoint("lose")}>❌ Punto perdido</button>
-        <div style={{ marginTop: '10px' }}>Marcador: Ganados: {score.won} / Perdidos: {score.lost}</div>
-      </div>
+      <h2>Rotación</h2>
+      <button onClick={rotate}>➡ Siguiente</button>
+      <button onClick={rotateBack}>⬅ Anterior</button>
 
-      <div className="history-section">
-        <h2>Historial de puntos</h2>
-        <ul>
-          {history.map((h, i) => (
-            <li key={i}>
-              Rotación: {h.rotation.join("-")} | {h.result === "win" ? "✔" : "❌"} {h.action} {h.player && `| Jugadora: ${h.player}`}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <h2>Punto Ganado</h2>
+      {actionsWin.map((action) => (
+        <button
+          key={action}
+          onClick={() => {
+            if (action === "ERROR RIVAL") handlePoint("win", action);
+          }}
+          style={{ margin: '5px', backgroundColor: '#c6f6d5' }}
+        >
+          {action !== "ERROR RIVAL" ? (
+            <select onChange={(e) => handlePoint("win", action, players[e.target.value]?.name)}>
+              <option value="">--{action}--</option>
+              {allSelectable.map(i => (
+                <option key={i} value={i}>{players[i].name} ({i + 1})</option>
+              ))}
+            </select>
+          ) : action}
+        </button>
+      ))}
+
+      <h2>Punto Perdido</h2>
+      {actionsLose.map((action) => (
+        <button
+          key={action}
+          onClick={() => {
+            if (action.includes("RIVAL") || action.includes("ERROR")) handlePoint("lose", action);
+          }}
+          style={{ margin: '5px', backgroundColor: '#fed7d7' }}
+        >
+          {!(action.includes("RIVAL") || action.includes("ERROR")) ? (
+            <select onChange={(e) => handlePoint("lose", action, players[e.target.value]?.name)}>
+              <option value="">--{action}--</option>
+              {allSelectable.map(i => (
+                <option key={i} value={i}>{players[i].name} ({i + 1})</option>
+              ))}
+            </select>
+          ) : action}
+        </button>
+      ))}
+
+      <h2>Historial</h2>
+      <ul>
+        {history.map((h, i) => (
+          h.result !== "cambio" ? (
+            <li key={i}>{h.score.won}-{h.score.lost} | {h.action}{h.player ? ` - ${h.player}` : ""}</li>
+          ) : (
+            <li key={i}>{h.action}</li>
+          )
+        ))}
+      </ul>
     </div>
   );
 }
-
